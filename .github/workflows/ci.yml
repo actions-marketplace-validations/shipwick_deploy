@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  script:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash -n scripts/deploy.sh
+      - run: shellcheck scripts/deploy.sh
+
+  # Downloads, verifies and runs the CLI on every supported runner, once
+  # pinned to a release and once following the latest one. There is no
+  # server: check-only stops before anything is deployed.
+  download:
+    name: ${{ matrix.os }} / ${{ matrix.version || 'latest' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        version: [v0.3.1, ""]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          version: ${{ matrix.version }}
+          check-only: true
+      - name: The CLI is on the PATH of the steps that follow
+        run: shipwick --version
+      - name: A pinned version is the one installed
+        if: matrix.version != ''
+        run: test "$(shipwick --version)" = "shipwick version ${{ matrix.version }}"
+
+  # Windows is refused with a sentence rather than failing somewhere inside.
+  windows:
+    name: windows is refused
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        id: run
+        continue-on-error: true
+        with:
+          version: v0.3.1
+          check-only: true
+      - if: steps.run.outcome != 'failure'
+        shell: bash
+        run: |
+          echo "The action ran on Windows; it should have refused."
+          exit 1

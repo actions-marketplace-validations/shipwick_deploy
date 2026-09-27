@@ -1,0 +1,60 @@
+name: Shipwick deploy
+description: Deploy an application to your server with Shipwick.
+author: The Shipwick Authors
+
+branding:
+  icon: upload-cloud
+  color: gray-dark
+
+inputs:
+  url:
+    description: The URL of your Shipwick agent, such as https://agent.example.com.
+    required: true
+  token:
+    description: A Shipwick API token with the deploy role, from a repository secret.
+    required: true
+  image:
+    description: Deploy this image instead of the one in deploy.yaml (shipwick deploy --image).
+    required: false
+  file:
+    description: The deploy.yaml to deploy. Several applications deploy in order, one path per line.
+    required: false
+    default: deploy.yaml
+  env-file:
+    description: A NAME=value file that fills in ${NAME} placeholders (shipwick deploy --env-file). One path per line.
+    required: false
+  version:
+    description: The release of the shipwick CLI to use, such as v0.3.1. Default, the latest release.
+    required: false
+  no-wait:
+    description: Start the deployment and return at once instead of waiting for its result.
+    required: false
+    default: "false"
+  check-only:
+    description: For testing this action. Download and verify the CLI, print its version, and stop; nothing is deployed.
+    required: false
+    default: "false"
+
+outputs:
+  version:
+    description: The version that was deployed, as the CLI reports it. Empty with no-wait or when the deployment failed.
+    value: ${{ steps.deploy.outputs.version }}
+  url:
+    description: The https:// URL the application is served at. Empty when it has no domain, with no-wait, or when the deployment failed.
+    value: ${{ steps.deploy.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - id: deploy
+      shell: bash
+      env:
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_IMAGE: ${{ inputs.image }}
+        INPUT_FILE: ${{ inputs.file }}
+        INPUT_ENV_FILE: ${{ inputs.env-file }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_NO_WAIT: ${{ inputs.no-wait }}
+        INPUT_CHECK_ONLY: ${{ inputs.check-only }}
+      run: bash "${{ github.action_path }}/scripts/deploy.sh"
