@@ -57,7 +57,7 @@ jobs:
 | `url` | The URL of your Shipwick agent | required |
 | `token` | An API token with the `deploy` role, from a secret | required |
 | `image` | Deploy this image instead of the one in `deploy.yaml` (`--image`) | |
-| `file` | The `deploy.yaml` to deploy. One path per line deploys several applications in order, stopping at the first failure (`-f`, repeated); `--image` then does not apply | `deploy.yaml` |
+| `file` | The `deploy.yaml` to deploy. A `shipwick.yaml` deploys its applications at the same time, in dependency order. One path per line deploys several `deploy.yaml` in order, stopping at the first failure (`-f`, repeated); `--image` then does not apply | `deploy.yaml` |
 | `env-file` | A `NAME=value` file that fills in `${NAME}` placeholders before the file is sent (`--env-file`). One path per line | |
 | `version` | The release of the CLI to use, such as `v0.3.1` | the latest release |
 | `no-wait` | Start the deployment and return at once (`--no-wait`) | `false` |
