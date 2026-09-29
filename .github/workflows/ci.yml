@@ -14,7 +14,7 @@ jobs:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - run: bash -n scripts/deploy.sh
       - run: shellcheck scripts/deploy.sh
 
@@ -30,7 +30,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
         version: [v0.3.1, ""]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: ./
         with:
           version: ${{ matrix.version }}
@@ -46,7 +46,7 @@ jobs:
     name: windows is refused
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - uses: ./
         id: run
         continue-on-error: true
