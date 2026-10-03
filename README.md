@@ -154,6 +154,12 @@ release and following the latest one, which downloads, verifies and runs the
 CLI without a server to deploy to. The same input works in your own
 repository to check the download path before wiring up a token.
 
+The *End to end* workflow deploys to a live agent: an application from
+[test/e2e](test/e2e), then an image that does not exist, which has to fail
+the step and leave the first version running. It is started by hand before a
+release and needs a test server's URL and a `deploy` token in the
+repository's secrets; its file says which.
+
 Problems with the CLI or the agent belong in
 [shipwick/shipwick](https://github.com/shipwick/shipwick/issues); problems
 with this action, in this repository's issues.
