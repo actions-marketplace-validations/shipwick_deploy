@@ -1,0 +1,82 @@
+name: End to end
+
+# A deployment from a workflow to a live agent, which CI cannot have: it is
+# run by hand, before a release of the action or of Shipwick, against a
+# server kept for testing. It needs two repository secrets:
+#
+#   SHIPWICK_E2E_URL     the agent's URL, such as https://agent.example.com
+#   SHIPWICK_E2E_TOKEN   a token with the deploy role
+#                        (shipwick token create action-e2e --role deploy)
+#
+# The application it deploys, action-e2e, has no domain and stays on the
+# server between runs; each run replaces it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release of the shipwick CLI to use (default, the latest)
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to the test server
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SHIPWICK_AGENT_URL: ${{ secrets.SHIPWICK_E2E_URL }}
+      SHIPWICK_AGENT_TOKEN: ${{ secrets.SHIPWICK_E2E_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The secrets are set
+        run: |
+          test -n "$SHIPWICK_AGENT_URL" || { echo "::error::SHIPWICK_E2E_URL is not set in this repository's secrets"; exit 1; }
+          test -n "$SHIPWICK_AGENT_TOKEN" || { echo "::error::SHIPWICK_E2E_TOKEN is not set in this repository's secrets"; exit 1; }
+
+      - name: The values the deployment fills in
+        run: printf 'WHOAMI_VERSION=v1.11\nRUN_ID=%s\n' "$GITHUB_RUN_ID" > test/e2e/values.env
+
+      - uses: ./
+        id: deploy
+        with:
+          url: ${{ secrets.SHIPWICK_E2E_URL }}
+          token: ${{ secrets.SHIPWICK_E2E_TOKEN }}
+          file: test/e2e/deploy.yaml
+          env-file: test/e2e/values.env
+          version: ${{ inputs.version }}
+
+      - name: The action reports what it deployed
+        run: test "${{ steps.deploy.outputs.version }}" = "v1.11"
+
+      - name: The server runs it
+        run: |
+          shipwick status action-e2e | tee status.txt
+          grep -q "HEALTHY" status.txt
+          grep -q "1/1 healthy" status.txt
+
+      - name: A deployment the server refuses fails the step
+        id: refused
+        continue-on-error: true
+        uses: ./
+        with:
+          url: ${{ secrets.SHIPWICK_E2E_URL }}
+          token: ${{ secrets.SHIPWICK_E2E_TOKEN }}
+          file: test/e2e/deploy.yaml
+          image: traefik/whoami:no-such-tag-${{ github.run_id }}
+          env-file: test/e2e/values.env
+          version: ${{ inputs.version }}
+
+      - name: And leaves the version that was running
+        run: |
+          test "${{ steps.refused.outcome }}" = "failure" || { echo "::error::deploying an image that does not exist succeeded"; exit 1; }
+          shipwick status action-e2e | tee status.txt
+          grep -q "HEALTHY" status.txt
+          grep -q "v1.11" status.txt

@@ -1,0 +1,20 @@
+name: action-e2e
+
+# A small public image that answers HTTP: the deployment has something to
+# start and something to check, and nothing has to be built.
+image: traefik/whoami:${WHOAMI_VERSION}
+port: 80
+replicas: 1
+
+env:
+  WHOAMI_NAME: deployed-by-run-${RUN_ID}
+
+health:
+  path: /health
+  interval: 2s
+  timeout: 2s
+  retries: 5
+
+resources:
+  cpu: 0.25
+  memory: 64mb
